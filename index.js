@@ -1,5 +1,6 @@
 "use strict";
 
+const BabelTranspiler = require("broccoli-babel-transpiler");
 const Funnel = require("broccoli-funnel");
 const mergeTrees = require("broccoli-merge-trees");
 const path = require("path");
@@ -20,10 +21,17 @@ module.exports = EngineAddon.extend({
     plugins: ["transform-decorators-legacy", "transform-object-rest-spread"]
   },
 
+  // same reason as above: not wrapped in "options" (engine)
+  autoImport: {
+    // jexl doesn't provide an ES5 build, so we exclude it from autoImport
+    // and transpile it with broccoli (see below)
+    // https://github.com/ef4/ember-auto-import/issues/41
+    exclude: ["jexl"]
+  },
+
   included() {
     this._super.included.apply(this, arguments);
   },
-
   treeForApp(appTree) {
     const trees = [appTree];
 
@@ -36,5 +44,29 @@ module.exports = EngineAddon.extend({
     trees.push(mirageTree);
 
     return mergeTrees(trees);
+  },
+
+  treeForAddon: function() {
+    const addonTree = this._super.treeForAddon.apply(this, arguments);
+
+    // transpile jexl to es5, since it doesn't offer a transpiled built
+    const transpiled = new BabelTranspiler("node_modules/jexl/lib", {
+      presets: [
+        [
+          "@babel/preset-env",
+          {
+            targets: {
+              browsers: ["ie 11"]
+            }
+          }
+        ]
+      ]
+    });
+
+    const jexl = new Funnel(transpiled, {
+      destDir: "modules/jexl"
+    });
+
+    return new mergeTrees([addonTree, jexl]);
   }
 });
