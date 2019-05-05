@@ -6,6 +6,11 @@ import saveDocumentTableAnswerMutation from "ember-caluma/gql/mutations/save-doc
 import { inject as service } from "@ember/service";
 import { ComponentQueryManager } from "ember-apollo-client";
 
+// TODO check why babel polyfill didn't pick this up
+function flat(arrays) {
+  return [].concat.apply([], arrays);
+}
+
 export default Component.extend(ComponentQueryManager, {
   layout,
 
@@ -61,7 +66,7 @@ export default Component.extend(ComponentQueryManager, {
       try {
         const newDocument = this.get("documentToEdit");
         await all(newDocument.fields.map(f => f.validate.perform()));
-        if (newDocument.fields.map(f => f.errors).flat().length) {
+        if (flat(newDocument.fields.map(f => f.errors)).length) {
           return;
         }
 
@@ -97,6 +102,8 @@ export default Component.extend(ComponentQueryManager, {
 
         this.set("showModal", false);
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
         this.get("notification").danger(
           this.get("intl").t("caluma.form.notification.table.add.error")
         );
