@@ -132,7 +132,7 @@ export default EmberObject.extend({
       // single quesiton, doesn't need explanation about path / segment step
       explanation = ` (failed at segment "${failedAtSegment}")`;
     }
-    throw new Error(
+    console.warn(
       `Question could not be resolved: "${path}"${explanation}. Available: ${availableKeys}`
     );
   },
